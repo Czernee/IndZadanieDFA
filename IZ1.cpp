@@ -81,7 +81,7 @@ int from5to10(string input)
 void isDivisibleBySeven(string input) {
     TransitionTable tt;
     initTransitionTable(tt);
-    int decimal = from5to10(input);//
+    int decimal = from5to10(input);
     (decimal % 7 == 0) ? cout << "Yes" << endl : cout << decimal << " No\nОстаток от деления на 7: " << (decimal % 7) << endl;
     
 }
