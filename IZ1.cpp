@@ -2,98 +2,80 @@
 // Программирование и Основы Теории Алгоритмов 2
 // Индивидульное задания №1
 // КТбо1-7 Черноусов Даниил Владимирович 
-// 27.10.2022
+// 30.10.2022
 
 #include <iostream>
+#include <unordered_map>
 #include <string>
-#include <fstream>
 
 using namespace std;
 
-//структура для хранения таблицы переходов
-struct TransitionTable
+//структура для хранения таблицы переходов состояний
+struct Condition
     {
-    int numStates;   // переменная, определяющая количество состояний в автомате;
-
-    int** nextState; // двумерный массив, где строки
-                     // соответствуют текущему состоянию автомата,
-                     // а столбцы - входным символам
+    string name; //имя состояния (q0 - q6)
+    unordered_map<int, Condition*> transitions; //таблица переходов, связывающая состояния конечного автомата
     };
 
 
-//-----------------------------------------------------------------------------
-// Функция проверяет строку на корректность
-// Вх. данные: введенная строка
-// Результат: true, если удовлетворяет условиям, иначе false
-//-----------------------------------------------------------------------------
-bool isValidInput(string input) {
-    for (char c : input) {
-        if (c < '0' || c > '4') {
-            return false;
-        }
-    }
-    return true;
-}
-
-//-----------------------------------------------------------------------------
-// Функция инициализирует (заполняет) таблицу переходов для конечного автомата
-// Вх. данные: заполняемая таблица
-// Результат: заполненная таблица
-//-----------------------------------------------------------------------------
-void initTransitionTable(TransitionTable& tt)
+//--------------------------------------------
+//
+Condition* initTransitionTable()
     {
-    ifstream fin("input.txt");
-    fin >> tt.numStates;
+    Condition* q0 = new Condition{ "q0" };
+    Condition* q1 = new Condition{ "q1" };
+    Condition* q2 = new Condition{ "q2" };
+    Condition* q3 = new Condition{ "q3" };
+    Condition* q4 = new Condition{ "q4" };
+    Condition* q5 = new Condition{ "q5" };
+    Condition* q6 = new Condition{ "q6" };
 
-    tt.nextState = new int* [tt.numStates];
-    for (int i = 0; i < tt.numStates; i++)
+    q0->transitions = { {0, q0}, {1, q1}, {2, q2}, {3, q3}, {4, q4} };
+    q1->transitions = { {0, q5}, {1, q6}, {2, q0}, {3, q1}, {4, q2} };
+    q2->transitions = { {0, q3}, {1, q4}, {2, q5}, {3, q6}, {4, q0} };
+    q3->transitions = { {0, q1}, {1, q2}, {2, q3}, {3, q4}, {4, q5} };
+    q4->transitions = { {0, q6}, {1, q0}, {2, q1}, {3, q2}, {4, q3} };
+    q5->transitions = { {0, q4}, {1, q5}, {2, q6}, {3, q0}, {4, q1} };
+    q6->transitions = { {0, q2}, {1, q3}, {2, q4}, {3, q5}, {4, q6} };
+
+    return q0;
+    }
+
+Condition* is_divisible_by_seven(const string& input, Condition* current_state)
+    {
+    for (char c : input)
         {
-        tt.nextState[i] = new int[tt.numStates];
-        for (int j = 0; j < tt.numStates; j++)
+        int digit = c - '0';
+        current_state = current_state->transitions[digit];
+        }
+
+    return current_state;
+    }
+
+bool isValidInput(const string& input)
+    {
+    for (char c : input)
+        {
+        if (c < '0' || c > '4')
             {
-            fin >> tt.nextState[i][j];
+            return false;
             }
         }
+    return true;
     }
 
-
-//-----------------------------------------------------------------------------
-// Функция переводит число из пятеричной СС в десятеричную
-// Вх. данные: число из входной строки
-// Результат: переведенное число
-//-----------------------------------------------------------------------------
-int from5to10(string input)
+Condition* transition(Condition* current_state, int digit)
     {
-    int result = 0;
-    int base = 1;
-    for (int i = input.size() - 1; i >= 0; i--)
-        {
-        result += (input[i] - '0') * base;
-        base *= 5;
-        }
-    return result;
+    return current_state->transitions[digit];
     }
-//-----------------------------------------------------------------------------
-// Функция проверяет, делится ли входное число на 7
-// Вх. данные: число из входной строки
-// Результат: выясняет, делится ли введенное число на 7
-//-----------------------------------------------------------------------------
-void isDivisibleBySeven(string input) {
-    TransitionTable tt;
-    initTransitionTable(tt);
-    int decimal = from5to10(input);
-    (decimal % 7 == 0) ? cout << "Yes" << endl : cout << decimal << " No\nОстаток от деления на 7: " << (decimal % 7) << endl;
-    
-}
 
-
-int main() {
+int main()
+    {
     setlocale(LC_ALL, "Russian");
+    Condition* current_state = initTransitionTable();
     string input;
     char choice;
     bool flag;
-    TransitionTable tt;
-    initTransitionTable(tt);
     do
         {
         cout << "Введите входное слово: ";
@@ -108,22 +90,40 @@ int main() {
             continue;
             }
 
-        int state = 0;
-        for (int i = 0; i < input.length(); i++)
+        current_state = initTransitionTable();
+        for (char c : input)
             {
-            int digit = input[i] - '0';
-            int nextState = tt.nextState[state][digit];
-            cout << i + 1 << " q" << state << " -> q" << nextState << endl;
-            state = nextState;
+            int digit = c - '0';
+            Condition* next_state = transition(current_state, digit);
+            cout << digit << " " << current_state->name << " -> " << next_state->name << endl;
+            current_state = next_state;
             }
 
-        isDivisibleBySeven(input);
-
-        cout << "Хотите ввести другое число? (y/n) ";
-        cin >> choice;
-
-        (choice == 'n' || choice == 'N') ? flag = false : flag = true;
+        if (current_state->name == "q0")
+            {
+            cout << "Yes" << endl;
+            cout << "Хотите ввести другое число? (y/n)" << endl;
+            cin >> choice;
+            (choice == 'n' || choice == 'N') ? flag = false : flag = true;
+            }
+        else
+            {
+            cout << "No" << endl;
+            cout << "Хотите ввести другое число? (y/n)" << endl;
+            cin >> choice;
+            (choice == 'n' || choice == 'N') ? flag = false : flag = true;
+            }
         } while (flag);
 
+    //очистка памяти
+    delete initTransitionTable()->transitions[0]->transitions[0]->transitions[0]->transitions[0]->transitions[0]->transitions[0];
+    delete initTransitionTable()->transitions[0]->transitions[0]->transitions[0]->transitions[0]->transitions[0];
+    delete initTransitionTable()->transitions[0]->transitions[0]->transitions[0]->transitions[0];
+    delete initTransitionTable()->transitions[0]->transitions[0]->transitions[0];
+    delete initTransitionTable()->transitions[0]->transitions[0];
+    delete initTransitionTable()->transitions[0];
+    delete initTransitionTable();
+
     return 0;
-}
+    }
+
